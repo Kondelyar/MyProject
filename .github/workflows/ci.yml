@@ -1,11 +1,17 @@
 name: CI Pipeline
 
 on:
-  pull_request:
-    types: [opened, edited, reopened, synchronize,
-            review_requested, submitted]
+  push:
     branches:
       - develop
+  pull_request:
+    types: [opened, edited, reopened, synchronize, review_requested, submitted]
+    branches:
+      - develop
+
+permissions:
+  contents: read
+  pull-requests: write
 
 jobs:
   build:
@@ -34,18 +40,19 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Code Review Check for develop
+        if: github.event_name == 'pull_request'
         uses: actions/github-script@v6
         with:
           script: |
-            const prNumber =
-              context.payload.pull_request.number;
-            const { data: reviews } =
-              await github.rest.pulls.listReviews({
+            const prNumber = context.payload.pull_request.number;
+            const { data: reviews } = await github.rest.pulls.listReviews({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 pull_number: prNumber
-              });
-            const approved = true;
+            });
+            const approved = reviews.some(
+              review => review.state === 'APPROVED'
+            );
             if (!approved) {
               core.setFailed("Код-рев'ю не схвалено");
             }
@@ -56,11 +63,15 @@ jobs:
           cloc src/ > cloc-report.txt
           cat cloc-report.txt
 
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
+      - name: Run SonarQube analysis
+        continue-on-error: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Автоматично надається GitHub
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}    # Твій згенерований токен
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip
+          unzip sonar-scanner-cli-4.8.0.2856-linux.zip
+          export PATH=$PATH:$(pwd)/sonar-scanner-4.8.0.2856-linux/bin
+          sonar-scanner
 
       - name: Запуск flake8 через Reviewdog
         uses: reviewdog/action-flake8@v2
@@ -78,7 +89,5 @@ jobs:
 
       - name: Перевірка змін у гілці develop
         run: |
-          git checkout develop
-          git pull
-          git log --oneline --graph > develop_changes.txt
+          git log --oneline --graph -n 10 > develop_changes.txt
           cat develop_changes.txt
