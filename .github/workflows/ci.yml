@@ -38,6 +38,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Виправляє помилку exit status 128 для Black
 
       - name: Code Review Check for develop
         if: github.event_name == 'pull_request'
