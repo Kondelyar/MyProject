@@ -9,6 +9,11 @@ on:
     branches:
       - develop
 
+# Цей блок забезпечує доступ до коментарів у PR
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
