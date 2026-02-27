@@ -1,14 +1,17 @@
 name: CI Pipeline
 
 on:
+  # Запуск при прямому завантаженні в develop
   push:
     branches:
       - develop
+  # Запуск при створенні або оновленні Pull Request у develop
   pull_request:
     types: [opened, edited, reopened, synchronize, review_requested, submitted]
     branches:
       - develop
 
+# Надаємо права для запису коментарів Reviewdog у Pull Request
 permissions:
   contents: read
   pull-requests: write
@@ -39,9 +42,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0 # Виправляє помилку exit status 128 для Black
+          fetch-depth: 0 # Потрібно для коректної роботи Reviewdog та Black
 
       - name: Code Review Check for develop
+        # Виконується лише у Pull Request, щоб уникнути помилок при push
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v6
         with:
@@ -66,6 +70,7 @@ jobs:
           cat cloc-report.txt
 
       - name: Run SonarQube analysis
+        # Дозволяємо пайплайну йти далі, навіть якщо локальний Sonar недоступний
         continue-on-error: true
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -80,14 +85,14 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           reporter: github-pr-review
-          level: error
+          level: error # Спричинить Failed статус при помилках стилю
 
       - name: Запуск Black через Reviewdog
         uses: reviewdog/action-black@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           reporter: github-pr-review
-          level: info
+          level: info # Лише інформаційні поради
 
       - name: Перевірка змін у гілці develop
         run: |
