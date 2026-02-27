@@ -1,9 +1,7 @@
 class Calculator:
-    def add(self, a, b):
-        return a + b
-
-    def divide(self, a, b):
-        if b == 0:
-            raise ValueError("Division by zero!")
-        return a / b
-
+    def add(self,a,b): # Помилка E231: немає пробілів після ком
+        return a+b # Помилка E225: немає пробілів навколо оператора +
+    def divide(self, a, b): # Помилка E302: очікувалося 2 порожні рядки між методами, а є 1
+        if b==0: # Помилка E225: немає пробілів навколо ==
+            raise ValueError('Division by zero!') # Black запропонує змінити одинарні лапки на подвійні
+        return a/b # Помилка E225: немає пробілів навколо /
